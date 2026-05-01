@@ -180,13 +180,11 @@ interface BlogPost {
   stats: { label: string; value: string }[];
 }
 
+type BlogPageProps = { params: { slug: string } };
+
 // ── Metadata generation ───────────────────────────────────────────────────────
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
-  const { slug } = await params;
+export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
+  const { slug } = params;
   const post = BLOG_POSTS[slug];
   if (!post) {
     return {
@@ -195,8 +193,7 @@ export async function generateMetadata({
     };
   }
 
-  const BASE_URL =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://cloudkitchenos.in";
+  const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://cloudkitchenos.in";
 
   return {
     title: post.title,
@@ -226,8 +223,8 @@ export async function generateStaticParams() {
 }
 
 // ── Page component ────────────────────────────────────────────────────────────
-export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
+export default function BlogPost({ params }: BlogPageProps) {
+  const { slug } = params;
   const post = BLOG_POSTS[slug];
   if (!post) notFound();
 
@@ -281,7 +278,8 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
         </div>
 
         {/* Content — basic render (use MDX in prod) */}
-        <div className="prose prose-invert prose-slate max-w-none
+        <div
+          className="prose prose-invert prose-slate max-w-none
           prose-headings:font-black prose-headings:text-white
           prose-h2:text-xl prose-h2:mt-10 prose-h2:mb-4
           prose-p:text-slate-300 prose-p:leading-relaxed
@@ -289,25 +287,45 @@ export default async function BlogPost({ params }: { params: Promise<{ slug: str
           prose-li:text-slate-300
           prose-table:text-sm
           prose-th:text-slate-200 prose-td:text-slate-400
-          prose-code:text-indigo-300 prose-code:bg-slate-800 prose-code:px-1 prose-code:rounded
-        ">
+          prose-code:text-indigo-300 prose-code:bg-slate-800 prose-code:px-1 prose-code:rounded"
+        >
           {contentLines.map((line, i) => {
             if (line.startsWith("## "))
-              return <h2 key={i} className="text-xl font-black text-white mt-10 mb-4">{line.slice(3)}</h2>;
+              return (
+                <h2 key={i} className="text-xl font-black text-white mt-10 mb-4">
+                  {line.slice(3)}
+                </h2>
+              );
             if (line.startsWith("**") && line.endsWith("**"))
-              return <p key={i} className="font-bold text-white">{line.slice(2, -2)}</p>;
+              return (
+                <p key={i} className="font-bold text-white">
+                  {line.slice(2, -2)}
+                </p>
+              );
             if (line.startsWith("- "))
-              return <li key={i} className="text-slate-300 ml-4">{line.slice(2)}</li>;
+              return (
+                <li key={i} className="text-slate-300 ml-4">
+                  {line.slice(2)}
+                </li>
+              );
             if (line.startsWith("|") && line.includes("---")) return null;
             if (line.trim() === "") return <div key={i} className="h-3" />;
-            return <p key={i} className="text-slate-300 leading-relaxed">{line}</p>;
+            return (
+              <p key={i} className="text-slate-300 leading-relaxed">
+                {line}
+              </p>
+            );
           })}
         </div>
 
         {/* CTA */}
         <div className="mt-16 p-6 rounded-2xl bg-gradient-to-r from-indigo-950 to-slate-900 border border-indigo-500/20 text-center">
-          <div className="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-2">Free Tool</div>
-          <h3 className="text-xl font-black text-white mb-2">Check Your Kitchen's Feasibility</h3>
+          <div className="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-2">
+            Free Tool
+          </div>
+          <h3 className="text-xl font-black text-white mb-2">
+            Check Your Kitchen's Feasibility
+          </h3>
           <p className="text-slate-400 text-sm mb-5">
             Get your AI feasibility score, SWOT, and roadmap in 60 seconds.
           </p>
