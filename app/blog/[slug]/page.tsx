@@ -184,9 +184,10 @@ interface BlogPost {
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
-  const post = BLOG_POSTS[params.slug];
+  const { slug } = await params;
+  const post = BLOG_POSTS[slug];
   if (!post) {
     return {
       title: "Post Not Found",
@@ -225,8 +226,9 @@ export async function generateStaticParams() {
 }
 
 // ── Page component ────────────────────────────────────────────────────────────
-export default function BlogPost({ params }: { params: { slug: string } }) {
-  const post = BLOG_POSTS[params.slug];
+export default async function BlogPost({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const post = BLOG_POSTS[slug];
   if (!post) notFound();
 
   // Convert markdown-like content to basic HTML (in prod: use MDX or remark)

@@ -13,7 +13,7 @@
     "supabase:types": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > types/supabase-generated.ts"
   },
   "dependencies": {
-    "next": "15.1.0",
+    "next": "15.3.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "@supabase/supabase-js": "^2.47.10",
@@ -41,7 +41,7 @@
     "@tailwindcss/typography": "^0.5.15",
     "tailwindcss-animate": "^1.0.7",
     "eslint": "^9.15.0",
-    "eslint-config-next": "15.1.0",
+    "eslint-config-next": "15.3.2",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9"
   },
