@@ -180,11 +180,11 @@ interface BlogPost {
   stats: { label: string; value: string }[];
 }
 
-type BlogPageProps = { params: { slug: string } };
+type BlogPageProps = { params: Promise<{ slug: string }> };
 
 // ── Metadata generation ───────────────────────────────────────────────────────
 export async function generateMetadata({ params }: BlogPageProps): Promise<Metadata> {
-  const { slug } = params;
+  const { slug } = await params;
   const post = BLOG_POSTS[slug];
   if (!post) {
     return {
@@ -223,8 +223,8 @@ export async function generateStaticParams() {
 }
 
 // ── Page component ────────────────────────────────────────────────────────────
-export default function BlogPost({ params }: BlogPageProps) {
-  const { slug } = params;
+export default async function BlogPost({ params }: BlogPageProps) {
+  const { slug } = await params;
   const post = BLOG_POSTS[slug];
   if (!post) notFound();
 
