@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
-import { supabaseAdmin } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET!;
+
+// ── Local admin client (no generic = no type conflict) ────────────────────────
+const admin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 interface VerifyBody {
   razorpay_order_id: string;
@@ -11,7 +18,7 @@ interface VerifyBody {
 }
 
 export async function POST(req: NextRequest) {
-  // Auth check
+  // ── Auth check ───────────────────────────────────────────────────────────
   const authHeader = req.headers.get("authorization");
   if (!authHeader?.startsWith("Bearer ")) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -21,12 +28,13 @@ export async function POST(req: NextRequest) {
   const {
     data: { user },
     error: authError,
-  } = await supabaseAdmin.auth.getUser(token);
+  } = await admin.auth.getUser(token);
 
   if (authError || !user) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
+  // ── Parse body ───────────────────────────────────────────────────────────
   let body: VerifyBody;
   try {
     body = await req.json();
@@ -43,7 +51,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Verify HMAC signature ─────────────────────────────────────────────────
+  // ── Verify HMAC signature ────────────────────────────────────────────────
   const expectedSignature = crypto
     .createHmac("sha256", RAZORPAY_KEY_SECRET)
     .update(`${razorpay_order_id}|${razorpay_payment_id}`)
@@ -57,27 +65,31 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── Activate PRO subscription in DB ──────────────────────────────────────
+  // ── Activate PRO subscription ────────────────────────────────────────────
   try {
-    const { error: subError } = await supabaseAdmin
+    // Delete existing subscription for this user first (avoid conflict)
+    await admin
       .from("subscriptions")
-      .upsert(
-        {
-          user_id: user.id,
-          status: "active" as const,
-          plan: "pro" as const,
-          amount_paid: 1499,
-          currency: "INR",
-          payment_id: razorpay_payment_id,
-          expires_at: null as string | null,
-        },
-        { onConflict: "payment_id" }
-      );
+      .delete()
+      .eq("user_id", user.id);
+
+    // Insert fresh active subscription
+    const { error: subError } = await admin
+      .from("subscriptions")
+      .insert({
+        user_id: user.id,
+        status: "active",
+        plan: "pro",
+        amount_paid: 1499,
+        currency: "INR",
+        payment_id: razorpay_payment_id,
+        expires_at: null,
+      });
 
     if (subError) throw subError;
 
-    // Also update profile is_pro flag
-    await supabaseAdmin
+    // Update profile is_pro flag
+    await admin
       .from("profiles")
       .update({ is_pro: true })
       .eq("id", user.id);
@@ -89,7 +101,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("Subscription activation error:", err);
     return NextResponse.json(
-      { error: "Payment verified but subscription activation failed. Please contact support." },
+      { error: "Payment verified but activation failed. Contact support." },
       { status: 500 }
     );
   }
