@@ -64,12 +64,12 @@ export async function POST(req: NextRequest) {
       .upsert(
         {
           user_id: user.id,
-          status: "active",
-          plan: "pro",
+          status: "active" as const,
+          plan: "pro" as const,
           amount_paid: 1499,
           currency: "INR",
           payment_id: razorpay_payment_id,
-          expires_at: null, // Lifetime
+          expires_at: null as string | null,
         },
         { onConflict: "payment_id" }
       );
